@@ -1,0 +1,19 @@
+.DS_Store
+Thumbs.db
+*.log
+
+# Dependencies
+**/node_modules/
+
+# Build outputs
+**/dist/
+**/build/
+**/.vite/
+
+# Local/editor state
+.cursor/
+.idea/
+.vscode/
+
+# Archives
+*.zip

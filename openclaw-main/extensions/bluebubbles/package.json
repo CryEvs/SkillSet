@@ -1,0 +1,62 @@
+{
+  "name": "@skillset/bluebubbles",
+  "version": "2026.4.20",
+  "description": "SkillSet BlueBubbles channel plugin",
+  "type": "module",
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*",
+    "skillset": "workspace:*"
+  },
+  "peerDependencies": {
+    "skillset": ">=2026.4.20"
+  },
+  "peerDependenciesMeta": {
+    "skillset": {
+      "optional": true
+    }
+  },
+  "skillset": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "setupEntry": "./setup-entry.ts",
+    "channel": {
+      "id": "bluebubbles",
+      "label": "BlueBubbles",
+      "selectionLabel": "BlueBubbles (macOS app)",
+      "detailLabel": "BlueBubbles",
+      "docsPath": "/channels/bluebubbles",
+      "docsLabel": "bluebubbles",
+      "blurb": "iMessage via the BlueBubbles mac app + REST API.",
+      "aliases": [
+        "bb"
+      ],
+      "preferOver": [
+        "imessage"
+      ],
+      "systemImage": "bubble.left.and.text.bubble.right",
+      "order": 75,
+      "cliAddOptions": [
+        {
+          "flags": "--webhook-path <path>",
+          "description": "BlueBubbles webhook path"
+        }
+      ]
+    },
+    "install": {
+      "npmSpec": "@skillset/bluebubbles",
+      "defaultChoice": "npm",
+      "minHostVersion": ">=2026.4.10"
+    },
+    "compat": {
+      "pluginApi": ">=2026.4.20"
+    },
+    "build": {
+      "skillsetVersion": "2026.4.20"
+    },
+    "release": {
+      "publishToClawHub": true,
+      "publishToNpm": true
+    }
+  }
+}

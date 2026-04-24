@@ -1,0 +1,31 @@
+{
+  "name": "@skillset/qa-matrix",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet Matrix QA runner plugin",
+  "type": "module",
+  "dependencies": {
+    "undici": "8.1.0"
+  },
+  "devDependencies": {
+    "@skillset/matrix": "workspace:*",
+    "@skillset/plugin-sdk": "workspace:*",
+    "skillset": "workspace:*"
+  },
+  "peerDependencies": {
+    "skillset": ">=2026.4.20"
+  },
+  "peerDependenciesMeta": {
+    "skillset": {
+      "optional": true
+    }
+  },
+  "skillset": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.20"
+    }
+  }
+}

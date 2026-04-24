@@ -1,0 +1,18 @@
+{
+  "name": "@skillset/edu-planner",
+  "version": "2026.4.23",
+  "private": true,
+  "description": "SkillSet educational planner extension with local Ollama and STT routing",
+  "type": "module",
+  "dependencies": {
+    "typebox": "1.1.28"
+  },
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*"
+  },
+  "skillset": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

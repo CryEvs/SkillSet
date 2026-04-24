@@ -1,0 +1,28 @@
+{
+  "name": "@skillset/memory-wiki",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet persistent wiki plugin",
+  "type": "module",
+  "dependencies": {
+    "typebox": "1.1.28",
+    "yaml": "^2.8.3"
+  },
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*",
+    "skillset": "workspace:*"
+  },
+  "peerDependencies": {
+    "skillset": ">=2026.4.20"
+  },
+  "peerDependenciesMeta": {
+    "skillset": {
+      "optional": true
+    }
+  },
+  "skillset": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

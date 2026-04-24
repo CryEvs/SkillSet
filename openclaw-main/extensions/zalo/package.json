@@ -1,0 +1,55 @@
+{
+  "name": "@skillset/zalo",
+  "version": "2026.4.20",
+  "description": "SkillSet Zalo channel plugin",
+  "type": "module",
+  "dependencies": {
+    "undici": "8.1.0"
+  },
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*",
+    "skillset": "workspace:*"
+  },
+  "peerDependencies": {
+    "skillset": ">=2026.4.20"
+  },
+  "peerDependenciesMeta": {
+    "skillset": {
+      "optional": true
+    }
+  },
+  "skillset": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "setupEntry": "./setup-entry.ts",
+    "channel": {
+      "id": "zalo",
+      "label": "Zalo",
+      "selectionLabel": "Zalo (Bot API)",
+      "docsPath": "/channels/zalo",
+      "docsLabel": "zalo",
+      "blurb": "Vietnam-focused messaging platform with Bot API.",
+      "aliases": [
+        "zl"
+      ],
+      "order": 80,
+      "quickstartAllowFrom": true
+    },
+    "install": {
+      "npmSpec": "@skillset/zalo",
+      "defaultChoice": "npm",
+      "minHostVersion": ">=2026.4.10"
+    },
+    "compat": {
+      "pluginApi": ">=2026.4.20"
+    },
+    "build": {
+      "skillsetVersion": "2026.4.20"
+    },
+    "release": {
+      "publishToClawHub": true,
+      "publishToNpm": true
+    }
+  }
+}

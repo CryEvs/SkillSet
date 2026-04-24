@@ -1,0 +1,17 @@
+// Copy to LocalSigning.xcconfig for personal local signing overrides.
+// This file is only an example and should stay committed.
+
+SKILLSET_CODE_SIGN_STYLE = Automatic
+SKILLSET_DEVELOPMENT_TEAM = YOUR_TEAM_ID
+
+SKILLSET_APP_BUNDLE_ID = ai.skillset.client
+SKILLSET_SHARE_BUNDLE_ID = ai.skillset.client.share
+SKILLSET_ACTIVITY_WIDGET_BUNDLE_ID = ai.skillset.client.activitywidget
+SKILLSET_WATCH_APP_BUNDLE_ID = ai.skillset.client.watchkitapp
+SKILLSET_WATCH_EXTENSION_BUNDLE_ID = ai.skillset.client.watchkitapp.extension
+
+// Leave empty with automatic signing.
+SKILLSET_APP_PROFILE =
+SKILLSET_SHARE_PROFILE =
+SKILLSET_WATCH_APP_PROFILE =
+SKILLSET_WATCH_EXTENSION_PROFILE =

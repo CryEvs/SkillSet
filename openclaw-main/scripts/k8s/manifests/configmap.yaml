@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skillset-config
+  labels:
+    app: skillset
+data:
+  skillset.json: |
+    {
+      "gateway": {
+        "mode": "local",
+        "bind": "loopback",
+        "port": 18789,
+        "auth": {
+          "mode": "token"
+        },
+        "controlUi": {
+          "enabled": true
+        }
+      },
+      "agents": {
+        "defaults": {
+          "workspace": "~/.skillset/workspace"
+        },
+        "list": [
+          {
+            "id": "default",
+            "name": "SkillSet Assistant",
+            "workspace": "~/.skillset/workspace"
+          }
+        ]
+      },
+      "cron": { "enabled": false }
+    }
+  AGENTS.md: |
+    # SkillSet Assistant
+
+    You are a helpful AI assistant running in Kubernetes.

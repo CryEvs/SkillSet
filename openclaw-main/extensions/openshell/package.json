@@ -1,0 +1,18 @@
+{
+  "name": "@skillset/openshell-sandbox",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet OpenShell sandbox backend",
+  "type": "module",
+  "dependencies": {
+    "openshell": "0.1.0"
+  },
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*"
+  },
+  "skillset": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

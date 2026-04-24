@@ -1,0 +1,15 @@
+{
+  "name": "@skillset/zai-provider",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet Z.AI provider plugin",
+  "type": "module",
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*"
+  },
+  "skillset": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

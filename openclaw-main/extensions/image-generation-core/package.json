@@ -1,0 +1,10 @@
+{
+  "name": "@skillset/image-generation-core",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet image generation runtime package",
+  "type": "module",
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*"
+  }
+}

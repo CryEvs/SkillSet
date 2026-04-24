@@ -1,0 +1,15 @@
+{
+  "name": "@skillset/groq-provider",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet Groq media-understanding provider",
+  "type": "module",
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*"
+  },
+  "skillset": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@skillset/memory-core",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet core memory search plugin",
+  "type": "module",
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "typebox": "1.1.28"
+  },
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*",
+    "skillset": "workspace:*"
+  },
+  "peerDependencies": {
+    "skillset": ">=2026.4.20"
+  },
+  "peerDependenciesMeta": {
+    "skillset": {
+      "optional": true
+    }
+  },
+  "skillset": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

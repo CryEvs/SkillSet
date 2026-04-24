@@ -1,0 +1,39 @@
+{
+  "name": "@skillset/qa-lab",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet QA lab plugin with private debugger UI and scenario runner",
+  "type": "module",
+  "dependencies": {
+    "@copilotkit/aimock": "1.14.3",
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "playwright-core": "1.59.1",
+    "yaml": "^2.8.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*",
+    "skillset": "workspace:*"
+  },
+  "peerDependencies": {
+    "skillset": ">=2026.4.20"
+  },
+  "peerDependenciesMeta": {
+    "skillset": {
+      "optional": true
+    }
+  },
+  "skillset": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "install": {
+      "npmSpec": "@skillset/qa-lab",
+      "defaultChoice": "npm",
+      "minHostVersion": ">=2026.4.10"
+    },
+    "compat": {
+      "pluginApi": ">=2026.4.20"
+    }
+  }
+}

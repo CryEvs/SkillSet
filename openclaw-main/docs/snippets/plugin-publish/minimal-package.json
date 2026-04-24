@@ -1,0 +1,16 @@
+{
+  "name": "@myorg/skillset-my-plugin",
+  "version": "1.0.0",
+  "type": "module",
+  "skillset": {
+    "extensions": ["./index.ts"],
+    "compat": {
+      "pluginApi": ">=2026.3.24-beta.2",
+      "minGatewayVersion": "2026.3.24-beta.2"
+    },
+    "build": {
+      "skillsetVersion": "2026.3.24-beta.2",
+      "pluginSdkVersion": "2026.3.24-beta.2"
+    }
+  }
+}

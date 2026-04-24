@@ -1,0 +1,27 @@
+import {
+  applyAgentDefaultModelPrimary,
+  resolveAgentModelPrimaryValue,
+} from "skillset/plugin-sdk/provider-onboard";
+import { OPENCODE_GO_DEFAULT_MODEL_REF } from "./onboard.js";
+
+export {
+  applyOpencodeGoConfig,
+  applyOpencodeGoProviderConfig,
+  OPENCODE_GO_DEFAULT_MODEL_REF,
+} from "./onboard.js";
+
+export function applyOpencodeGoModelDefault(
+  cfg: import("skillset/plugin-sdk/provider-onboard").SkillSetConfig,
+): {
+  next: import("skillset/plugin-sdk/provider-onboard").SkillSetConfig;
+  changed: boolean;
+} {
+  const current = resolveAgentModelPrimaryValue(cfg.agents?.defaults?.model);
+  if (current === OPENCODE_GO_DEFAULT_MODEL_REF) {
+    return { next: cfg, changed: false };
+  }
+  return {
+    next: applyAgentDefaultModelPrimary(cfg, OPENCODE_GO_DEFAULT_MODEL_REF),
+    changed: true,
+  };
+}

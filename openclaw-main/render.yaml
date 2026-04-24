@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: skillset
+    runtime: docker
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: SKILLSET_GATEWAY_PORT
+        value: "8080"
+      - key: SKILLSET_STATE_DIR
+        value: /data/.skillset
+      - key: SKILLSET_WORKSPACE_DIR
+        value: /data/workspace
+      - key: SKILLSET_GATEWAY_TOKEN
+        generateValue: true
+    disk:
+      name: skillset-data
+      mountPath: /data
+      sizeGB: 1

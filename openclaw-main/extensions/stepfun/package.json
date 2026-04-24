@@ -1,0 +1,15 @@
+{
+  "name": "@skillset/stepfun-provider",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet StepFun provider plugin",
+  "type": "module",
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*"
+  },
+  "skillset": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

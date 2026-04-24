@@ -1,0 +1,22 @@
+{
+  "name": "@skillset/google-plugin",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet Google plugin",
+  "type": "module",
+  "dependencies": {
+    "@google/genai": "^1.50.1",
+    "@mariozechner/pi-ai": "0.69.0"
+  },
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*"
+  },
+  "skillset": {
+    "bundle": {
+      "stageRuntimeDependencies": true
+    },
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

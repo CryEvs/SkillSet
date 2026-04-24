@@ -1,0 +1,19 @@
+{
+  "name": "@skillset/openai-provider",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet OpenAI provider plugins",
+  "type": "module",
+  "dependencies": {
+    "@mariozechner/pi-ai": "0.69.0",
+    "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*"
+  },
+  "skillset": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

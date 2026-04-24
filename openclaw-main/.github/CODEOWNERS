@@ -1,0 +1,54 @@
+# Protect the ownership rules themselves.
+/.github/CODEOWNERS @steipete
+
+# WARNING: GitHub CODEOWNERS uses last-match-wins semantics.
+# If you add overlapping rules below the secops block, include @skillset/secops
+# on those entries too or you can silently remove required secops review.
+# Security-sensitive code, config, and docs require secops review.
+/SECURITY.md @skillset/secops
+/.github/dependabot.yml @skillset/secops
+/.github/codeql/ @skillset/secops
+/.github/workflows/codeql.yml @skillset/secops
+/src/security/ @skillset/secops
+/src/secrets/ @skillset/secops
+/src/config/*secret*.ts @skillset/secops
+/src/config/**/*secret*.ts @skillset/secops
+/src/gateway/*auth*.ts @skillset/secops
+/src/gateway/**/*auth*.ts @skillset/secops
+/src/gateway/*secret*.ts @skillset/secops
+/src/gateway/**/*secret*.ts @skillset/secops
+/src/gateway/security-path*.ts @skillset/secops
+/src/gateway/resolve-configured-secret-input-string*.ts @skillset/secops
+/src/gateway/protocol/**/*secret*.ts @skillset/secops
+/src/gateway/server-methods/secrets*.ts @skillset/secops
+/src/agents/*auth*.ts @skillset/secops
+/src/agents/**/*auth*.ts @skillset/secops
+/src/agents/auth-profiles*.ts @skillset/secops
+/src/agents/auth-health*.ts @skillset/secops
+/src/agents/auth-profiles/ @skillset/secops
+/src/agents/sandbox.ts @skillset/secops
+/src/agents/sandbox-*.ts @skillset/secops
+/src/agents/sandbox/ @skillset/secops
+/src/infra/secret-file*.ts @skillset/secops
+/src/cron/stagger.ts @skillset/secops
+/src/cron/service/jobs.ts @skillset/secops
+/docs/security/ @skillset/secops
+/docs/gateway/authentication.md @skillset/secops
+/docs/gateway/sandbox-vs-tool-policy-vs-elevated.md @skillset/secops
+/docs/gateway/sandboxing.md @skillset/secops
+/docs/gateway/secrets-plan-contract.md @skillset/secops
+/docs/gateway/secrets.md @skillset/secops
+/docs/gateway/security/ @skillset/secops
+/docs/cli/approvals.md @skillset/secops
+/docs/cli/sandbox.md @skillset/secops
+/docs/cli/security.md @skillset/secops
+/docs/cli/secrets.md @skillset/secops
+/docs/reference/secretref-credential-surface.md @skillset/secops
+/docs/reference/secretref-user-supplied-credentials-matrix.json @skillset/secops
+
+# Release workflow and its supporting release-path checks.
+/.github/workflows/skillset-npm-release.yml @skillset/skillset-release-managers
+/docs/reference/RELEASING.md @skillset/skillset-release-managers
+/scripts/skillset-npm-publish.sh @skillset/skillset-release-managers
+/scripts/skillset-npm-release-check.ts @skillset/skillset-release-managers
+/scripts/release-check.ts @skillset/skillset-release-managers

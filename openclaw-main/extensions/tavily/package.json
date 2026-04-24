@@ -1,0 +1,18 @@
+{
+  "name": "@skillset/tavily-plugin",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet Tavily plugin",
+  "type": "module",
+  "dependencies": {
+    "typebox": "1.1.28"
+  },
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*"
+  },
+  "skillset": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

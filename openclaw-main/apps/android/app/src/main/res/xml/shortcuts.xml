@@ -1,0 +1,17 @@
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <capability
+        android:name="custom.actions.intent.ASK_SKILLSET"
+        app:queryPatterns="@array/ask_skillset_query_patterns">
+        <intent
+            android:action="ai.skillset.app.action.ASK_SKILLSET"
+            android:targetPackage="ai.skillset.app"
+            android:targetClass="ai.skillset.app.MainActivity">
+            <parameter
+                android:name="prompt"
+                android:key="prompt"
+                android:mimeType="https://schema.org/Text"
+                android:required="true" />
+        </intent>
+    </capability>
+</shortcuts>

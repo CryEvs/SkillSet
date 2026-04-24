@@ -1,0 +1,22 @@
+// Default signing values for shared/repo builds.
+// Auto-selected local team overrides live in .local-signing.xcconfig (git-ignored).
+// Manual local overrides can go in LocalSigning.xcconfig (git-ignored).
+
+#include "Config/Version.xcconfig"
+
+SKILLSET_CODE_SIGN_STYLE = Manual
+SKILLSET_DEVELOPMENT_TEAM = Y5PE65HELJ
+
+SKILLSET_APP_BUNDLE_ID = ai.skillset.client
+SKILLSET_SHARE_BUNDLE_ID = ai.skillset.client.share
+SKILLSET_WATCH_APP_BUNDLE_ID = ai.skillset.client.watchkitapp
+SKILLSET_WATCH_EXTENSION_BUNDLE_ID = ai.skillset.client.watchkitapp.extension
+SKILLSET_ACTIVITY_WIDGET_BUNDLE_ID = ai.skillset.client.activitywidget
+
+SKILLSET_APP_PROFILE = ai.skillset.client Development
+SKILLSET_SHARE_PROFILE = ai.skillset.client.share Development
+
+// Keep local includes after defaults: xcconfig is evaluated top-to-bottom,
+// so later assignments in local files override the defaults above.
+#include? ".local-signing.xcconfig"
+#include? "LocalSigning.xcconfig"

@@ -1,0 +1,7 @@
+<resources>
+    <string-array name="ask_skillset_query_patterns">
+        <item>ask SkillSet $prompt</item>
+        <item>tell SkillSet to $prompt</item>
+        <item>open SkillSet and ask $prompt</item>
+    </string-array>
+</resources>

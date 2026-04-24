@@ -1,0 +1,15 @@
+{
+  "name": "@skillset/venice-provider",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet Venice provider plugin",
+  "type": "module",
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*"
+  },
+  "skillset": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

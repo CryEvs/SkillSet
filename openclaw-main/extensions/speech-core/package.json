@@ -1,0 +1,10 @@
+{
+  "name": "@skillset/speech-core",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet speech runtime package",
+  "type": "module",
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*"
+  }
+}

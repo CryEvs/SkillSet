@@ -1,0 +1,21 @@
+{
+  "name": "@skillset/webhooks",
+  "version": "2026.4.20",
+  "private": true,
+  "description": "SkillSet webhook bridge plugin",
+  "type": "module",
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@skillset/plugin-sdk": "workspace:*"
+  },
+  "skillset": {
+    "bundle": {
+      "stageRuntimeDependencies": true
+    },
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

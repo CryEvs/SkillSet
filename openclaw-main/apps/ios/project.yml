@@ -1,0 +1,354 @@
+name: SkillSet
+options:
+  bundleIdPrefix: ai.skillset
+  deploymentTarget:
+    iOS: "18.0"
+  xcodeVersion: "16.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    ENABLE_APP_INTENTS_METADATA_GENERATION: NO
+
+packages:
+  SkillSetKit:
+    path: ../shared/SkillSetKit
+  Swabble:
+    path: ../../Swabble
+
+schemes:
+  SkillSet:
+    shared: true
+    build:
+      targets:
+        SkillSet: all
+    test:
+      targets:
+        - SkillSetTests
+        - SkillSetLogicTests
+  SkillSetLogicTests:
+    shared: true
+    build:
+      targets:
+        SkillSetLogicTests: all
+    test:
+      targets:
+        - SkillSetLogicTests
+
+targets:
+  SkillSet:
+    type: application
+    platform: iOS
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
+    sources:
+      - path: Sources
+    dependencies:
+      - target: SkillSetShareExtension
+        embed: true
+      - target: SkillSetActivityWidget
+        embed: true
+      - target: SkillSetWatchApp
+      - package: SkillSetKit
+      - package: SkillSetKit
+        product: SkillSetChatUI
+      - package: SkillSetKit
+        product: SkillSetProtocol
+      - package: Swabble
+        product: SwabbleKit
+      - sdk: AppIntents.framework
+    preBuildScripts:
+      - name: SwiftFormat (lint)
+        basedOnDependencyAnalysis: false
+        inputFileLists:
+          - $(SRCROOT)/SwiftSources.input.xcfilelist
+        script: |
+          set -euo pipefail
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          if ! command -v swiftformat >/dev/null 2>&1; then
+            echo "error: swiftformat not found (brew install swiftformat)" >&2
+            exit 1
+          fi
+          swiftformat --lint --config "$SRCROOT/../../.swiftformat" \
+            --filelist "$SRCROOT/SwiftSources.input.xcfilelist"
+      - name: SwiftLint
+        basedOnDependencyAnalysis: false
+        inputFileLists:
+          - $(SRCROOT)/SwiftSources.input.xcfilelist
+        script: |
+          set -euo pipefail
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          if ! command -v swiftlint >/dev/null 2>&1; then
+            echo "error: swiftlint not found (brew install swiftlint)" >&2
+            exit 1
+          fi
+          swiftlint lint --config "$SRCROOT/.swiftlint.yml" --use-script-input-file-lists
+    settings:
+      base:
+        CODE_SIGN_IDENTITY: "Apple Development"
+        CODE_SIGN_ENTITLEMENTS: Sources/SkillSet.entitlements
+        CODE_SIGN_STYLE: "$(SKILLSET_CODE_SIGN_STYLE)"
+        DEVELOPMENT_TEAM: "$(SKILLSET_DEVELOPMENT_TEAM)"
+        PRODUCT_BUNDLE_IDENTIFIER: "$(SKILLSET_APP_BUNDLE_ID)"
+        PROVISIONING_PROFILE_SPECIFIER: "$(SKILLSET_APP_PROFILE)"
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        SUPPORTS_LIVE_ACTIVITIES: YES
+        ENABLE_APPINTENTS_METADATA: NO
+        ENABLE_APP_INTENTS_METADATA_GENERATION: NO
+      configs:
+        Debug:
+          SKILLSET_PUSH_TRANSPORT: direct
+          SKILLSET_PUSH_DISTRIBUTION: local
+          SKILLSET_PUSH_RELAY_BASE_URL: ""
+          SKILLSET_PUSH_APNS_ENVIRONMENT: sandbox
+        Release:
+          SKILLSET_PUSH_TRANSPORT: direct
+          SKILLSET_PUSH_DISTRIBUTION: local
+          SKILLSET_PUSH_RELAY_BASE_URL: ""
+          SKILLSET_PUSH_APNS_ENVIRONMENT: production
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: SkillSet
+        CFBundleIconName: AppIcon
+        CFBundleURLTypes:
+          - CFBundleURLName: ai.skillset.ios
+            CFBundleURLSchemes:
+              - skillset
+        CFBundleShortVersionString: "$(SKILLSET_MARKETING_VERSION)"
+        SkillSetCanonicalVersion: "$(SKILLSET_IOS_VERSION)"
+        CFBundleVersion: "$(SKILLSET_BUILD_VERSION)"
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UIBackgroundModes:
+          - audio
+          - remote-notification
+        BGTaskSchedulerPermittedIdentifiers:
+          - ai.skillset.ios.bgrefresh
+        NSLocalNetworkUsageDescription: SkillSet discovers and connects to your SkillSet gateway on the local network.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoadsInWebContent: true
+        NSBonjourServices:
+          - _skillset-gw._tcp
+        NSCameraUsageDescription: SkillSet can capture photos or short video clips when requested via the gateway.
+        NSLocationWhenInUseUsageDescription: SkillSet uses your location when you allow location sharing.
+        NSLocationAlwaysAndWhenInUseUsageDescription: SkillSet can share your location in the background when you enable Always.
+        NSMicrophoneUsageDescription: SkillSet needs microphone access for voice wake.
+        NSMotionUsageDescription: SkillSet may use motion data to support device-aware interactions and automations.
+        NSPhotoLibraryUsageDescription: SkillSet needs photo library access when you choose existing photos to share with your assistant.
+        NSSpeechRecognitionUsageDescription: SkillSet uses on-device speech recognition for voice wake.
+        NSSupportsLiveActivities: true
+        ITSAppUsesNonExemptEncryption: false
+        SkillSetPushTransport: "$(SKILLSET_PUSH_TRANSPORT)"
+        SkillSetPushDistribution: "$(SKILLSET_PUSH_DISTRIBUTION)"
+        SkillSetPushRelayBaseURL: "$(SKILLSET_PUSH_RELAY_BASE_URL)"
+        SkillSetPushAPNsEnvironment: "$(SKILLSET_PUSH_APNS_ENVIRONMENT)"
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+
+  SkillSetShareExtension:
+    type: app-extension
+    platform: iOS
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
+    sources:
+      - path: ShareExtension
+    dependencies:
+      - package: SkillSetKit
+      - sdk: AppIntents.framework
+    settings:
+      base:
+        CODE_SIGN_IDENTITY: "Apple Development"
+        CODE_SIGN_STYLE: "$(SKILLSET_CODE_SIGN_STYLE)"
+        DEVELOPMENT_TEAM: "$(SKILLSET_DEVELOPMENT_TEAM)"
+        ENABLE_APPINTENTS_METADATA: NO
+        ENABLE_APP_INTENTS_METADATA_GENERATION: NO
+        PRODUCT_BUNDLE_IDENTIFIER: "$(SKILLSET_SHARE_BUNDLE_ID)"
+        PROVISIONING_PROFILE_SPECIFIER: "$(SKILLSET_SHARE_PROFILE)"
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: SkillSet Share
+        CFBundleShortVersionString: "$(SKILLSET_MARKETING_VERSION)"
+        CFBundleVersion: "$(SKILLSET_BUILD_VERSION)"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).ShareViewController"
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsImageWithMaxCount: 10
+              NSExtensionActivationSupportsMovieWithMaxCount: 1
+
+  SkillSetActivityWidget:
+    type: app-extension
+    platform: iOS
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
+    sources:
+      - path: ActivityWidget
+      - path: Sources/LiveActivity/SkillSetActivityAttributes.swift
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: ActivityKit.framework
+    settings:
+      base:
+        CODE_SIGN_IDENTITY: "Apple Development"
+        CODE_SIGN_STYLE: "$(SKILLSET_CODE_SIGN_STYLE)"
+        DEVELOPMENT_TEAM: "$(SKILLSET_DEVELOPMENT_TEAM)"
+        PRODUCT_BUNDLE_IDENTIFIER: "$(SKILLSET_ACTIVITY_WIDGET_BUNDLE_ID)"
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        SUPPORTS_LIVE_ACTIVITIES: YES
+    info:
+      path: ActivityWidget/Info.plist
+      properties:
+        CFBundleDisplayName: SkillSet Activity
+        CFBundleShortVersionString: "$(SKILLSET_MARKETING_VERSION)"
+        CFBundleVersion: "$(SKILLSET_BUILD_VERSION)"
+        NSSupportsLiveActivities: true
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+
+  SkillSetWatchApp:
+    type: application.watchapp2
+    platform: watchOS
+    deploymentTarget: "11.0"
+    sources:
+      - path: WatchApp
+    dependencies:
+      - target: SkillSetWatchExtension
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
+    attributes:
+      DevelopmentTeam: "$(SKILLSET_DEVELOPMENT_TEAM)"
+      ProvisioningStyle: "$(SKILLSET_CODE_SIGN_STYLE)"
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_IDENTITY: "Apple Development"
+        CODE_SIGN_STYLE: "$(SKILLSET_CODE_SIGN_STYLE)"
+        DEVELOPMENT_TEAM: "$(SKILLSET_DEVELOPMENT_TEAM)"
+        ENABLE_APPINTENTS_METADATA: NO
+        ENABLE_APP_INTENTS_METADATA_GENERATION: NO
+        PRODUCT_BUNDLE_IDENTIFIER: "$(SKILLSET_WATCH_APP_BUNDLE_ID)"
+        PROVISIONING_PROFILE_SPECIFIER: "$(SKILLSET_WATCH_APP_PROFILE)"
+    info:
+      path: WatchApp/Info.plist
+      properties:
+        CFBundleDisplayName: SkillSet
+        CFBundleShortVersionString: "$(SKILLSET_MARKETING_VERSION)"
+        CFBundleVersion: "$(SKILLSET_BUILD_VERSION)"
+        WKCompanionAppBundleIdentifier: "$(SKILLSET_APP_BUNDLE_ID)"
+        WKWatchKitApp: true
+
+  SkillSetWatchExtension:
+    type: watchkit2-extension
+    platform: watchOS
+    deploymentTarget: "11.0"
+    sources:
+      - path: WatchExtension/Sources
+    dependencies:
+      - sdk: AppIntents.framework
+      - sdk: WatchConnectivity.framework
+      - sdk: UserNotifications.framework
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
+    attributes:
+      DevelopmentTeam: "$(SKILLSET_DEVELOPMENT_TEAM)"
+      ProvisioningStyle: "$(SKILLSET_CODE_SIGN_STYLE)"
+    settings:
+      base:
+        CODE_SIGN_IDENTITY: "Apple Development"
+        CODE_SIGN_STYLE: "$(SKILLSET_CODE_SIGN_STYLE)"
+        DEVELOPMENT_TEAM: "$(SKILLSET_DEVELOPMENT_TEAM)"
+        PRODUCT_BUNDLE_IDENTIFIER: "$(SKILLSET_WATCH_EXTENSION_BUNDLE_ID)"
+        PROVISIONING_PROFILE_SPECIFIER: "$(SKILLSET_WATCH_EXTENSION_PROFILE)"
+    info:
+      path: WatchExtension/Info.plist
+      properties:
+        CFBundleDisplayName: SkillSet
+        CFBundleShortVersionString: "$(SKILLSET_MARKETING_VERSION)"
+        CFBundleVersion: "$(SKILLSET_BUILD_VERSION)"
+        NSExtension:
+          NSExtensionAttributes:
+            WKAppBundleIdentifier: "$(SKILLSET_WATCH_APP_BUNDLE_ID)"
+          NSExtensionPointIdentifier: com.apple.watchkit
+
+  SkillSetTests:
+    type: bundle.unit-test
+    platform: iOS
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
+    sources:
+      - path: Tests
+        excludes:
+          - Logic
+    dependencies:
+      - target: SkillSet
+      - package: Swabble
+        product: SwabbleKit
+      - sdk: AppIntents.framework
+    settings:
+      base:
+        CODE_SIGN_IDENTITY: "Apple Development"
+        CODE_SIGN_STYLE: "$(SKILLSET_CODE_SIGN_STYLE)"
+        DEVELOPMENT_TEAM: "$(SKILLSET_DEVELOPMENT_TEAM)"
+        PRODUCT_BUNDLE_IDENTIFIER: ai.skillset.ios.tests
+        ENABLE_APP_INTENTS_METADATA_GENERATION: NO
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/SkillSet.app/SkillSet"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+    info:
+      path: Tests/Info.plist
+      properties:
+        CFBundleDisplayName: SkillSetTests
+        CFBundleShortVersionString: "$(SKILLSET_MARKETING_VERSION)"
+        CFBundleVersion: "$(SKILLSET_BUILD_VERSION)"
+
+  SkillSetLogicTests:
+    type: bundle.unit-test
+    platform: iOS
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
+    sources:
+      - path: Tests/Logic
+    dependencies:
+      - package: SkillSetKit
+    settings:
+      base:
+        CODE_SIGN_IDENTITY: "Apple Development"
+        CODE_SIGN_STYLE: "$(SKILLSET_CODE_SIGN_STYLE)"
+        DEVELOPMENT_TEAM: "$(SKILLSET_DEVELOPMENT_TEAM)"
+        PRODUCT_BUNDLE_IDENTIFIER: ai.skillset.ios.logic-tests
+        ENABLE_APP_INTENTS_METADATA_GENERATION: NO
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+    info:
+      path: Tests/Info.plist
+      properties:
+        CFBundleDisplayName: SkillSetLogicTests
+        CFBundleShortVersionString: "$(SKILLSET_MARKETING_VERSION)"
+        CFBundleVersion: "$(SKILLSET_BUILD_VERSION)"

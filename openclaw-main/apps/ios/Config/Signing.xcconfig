@@ -1,0 +1,25 @@
+// Shared iOS signing defaults for local development + CI.
+#include "Version.xcconfig"
+
+SKILLSET_IOS_DEFAULT_TEAM = Y5PE65HELJ
+SKILLSET_IOS_SELECTED_TEAM = $(SKILLSET_IOS_DEFAULT_TEAM)
+SKILLSET_DEVELOPMENT_TEAM = $(SKILLSET_IOS_SELECTED_TEAM)
+SKILLSET_CODE_SIGN_STYLE = Automatic
+SKILLSET_APP_BUNDLE_ID = ai.skillset.client
+SKILLSET_WATCH_APP_BUNDLE_ID = ai.skillset.client.watchkitapp
+SKILLSET_WATCH_EXTENSION_BUNDLE_ID = ai.skillset.client.watchkitapp.extension
+SKILLSET_ACTIVITY_WIDGET_BUNDLE_ID = ai.skillset.client.activitywidget
+SKILLSET_WATCH_APP_PROFILE =
+SKILLSET_WATCH_EXTENSION_PROFILE =
+
+// Local contributors can override this by running scripts/ios-configure-signing.sh.
+// Keep include after defaults: xcconfig is evaluated top-to-bottom.
+#include? "../.local-signing.xcconfig"
+#include? "../LocalSigning.xcconfig"
+
+CODE_SIGN_STYLE = $(SKILLSET_CODE_SIGN_STYLE)
+CODE_SIGN_IDENTITY = Apple Development
+DEVELOPMENT_TEAM = $(SKILLSET_DEVELOPMENT_TEAM)
+
+// Let Xcode manage provisioning for the selected local team unless a local override pins one.
+PROVISIONING_PROFILE_SPECIFIER =
