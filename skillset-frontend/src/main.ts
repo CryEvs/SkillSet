@@ -9,6 +9,16 @@ type GatewayReqFrame = { type: "req"; id: string; method: string; params?: unkno
 type ChatAttachment = { type: "audio" | "image"; mimeType: string; content: string; fileName: string };
 type UserRole = "student" | "parent" | "teacher";
 type GradeRow = { subject: string; grade: string; comment: string };
+type EventProjectCard = {
+  title: string;
+  imageUrl: string | null;
+  externalUrl: string | null;
+  dateStart: string | null;
+  dateEnd: string | null;
+  minAge: number | null;
+  maxAge: number | null;
+};
+type PlannerItem = { id: string; text: string; createdAt: number };
 type SpeechRecognitionLike = {
   continuous: boolean;
   interimResults: boolean;
@@ -28,10 +38,12 @@ const storage = {
   userName: "skillset.user.name",
   userRole: "skillset.user.role",
   diary: "skillset.diary.rows",
+  plannerItems: "skillset.planner.items",
 };
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing app root");
+const appRoot = app;
 
 const inputClass =
   "w-full rounded-xl border border-sky-200 bg-white px-3 py-2 text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200";
@@ -42,17 +54,26 @@ let ws: WebSocket | null = null;
 let pending = new Map<string, (payload: unknown) => void>();
 let pendingErr = new Map<string, (error: unknown) => void>();
 let attachment: ChatAttachment | null = null;
-let activeTab: "diary" | "chat" = "diary";
+let activeTab: "profile" | "diary" | "chat" | "events" | "plans" = "diary";
 let chatEl: HTMLDivElement | null = null;
 let sttRecognition: SpeechRecognitionLike | null = null;
 let sttListening = false;
 let connectNonce: string | null = null;
+let eventsLoading = false;
+let eventsError = "";
+let eventsProjects: EventProjectCard[] = [];
+let typingBubbleEl: HTMLDivElement | null = null;
+let typingTimer: number | null = null;
+let typingRenderedText = "";
+let plannerItems: PlannerItem[] = loadPlannerItems();
+let pendingHistoryTimer: number | null = null;
+const plannerRoleInjectedSessions = new Set<string>();
 
 const initialDiary = loadDiaryRows();
 renderApp(Boolean(localStorage.getItem(storage.authToken)), initialDiary);
 
 function renderApp(isLoggedIn: boolean, rows: GradeRow[]) {
-  app.innerHTML = isLoggedIn ? dashboardMarkup(rows) : loginMarkup();
+  appRoot.innerHTML = isLoggedIn ? dashboardMarkup(rows) : loginMarkup();
   if (isLoggedIn) {
     bindDashboard();
   } else {
@@ -87,16 +108,17 @@ function dashboardMarkup(rows: GradeRow[]) {
       <aside class="border-b border-sky-200 bg-sky-100 p-4 md:border-b-0 md:border-r">
         <div class="mb-3 text-2xl font-bold text-sky-900">SkillSet</div>
         <div class="grid gap-2 md:content-start">
+          <button class="nav-btn rounded-xl border px-3 py-2 text-left text-sm font-semibold transition ${activeTab === "profile" ? "border-sky-600 bg-sky-600 text-white" : "border-sky-300 bg-white text-sky-800 hover:bg-sky-50"}" data-tab="profile">Профиль</button>
           <button class="nav-btn rounded-xl border px-3 py-2 text-left text-sm font-semibold transition ${activeTab === "diary" ? "border-sky-600 bg-sky-600 text-white" : "border-sky-300 bg-white text-sky-800 hover:bg-sky-50"}" data-tab="diary">Дневник</button>
           <button class="nav-btn rounded-xl border px-3 py-2 text-left text-sm font-semibold transition ${activeTab === "chat" ? "border-sky-600 bg-sky-600 text-white" : "border-sky-300 bg-white text-sky-800 hover:bg-sky-50"}" data-tab="chat">Планировщик</button>
+          <button class="nav-btn rounded-xl border px-3 py-2 text-left text-sm font-semibold transition ${activeTab === "events" ? "border-sky-600 bg-sky-600 text-white" : "border-sky-300 bg-white text-sky-800 hover:bg-sky-50"}" data-tab="events">События</button>
+          <button class="nav-btn rounded-xl border px-3 py-2 text-left text-sm font-semibold transition ${activeTab === "plans" ? "border-sky-600 bg-sky-600 text-white" : "border-sky-300 bg-white text-sky-800 hover:bg-sky-50"}" data-tab="plans">Планы</button>
           <button id="logoutBtn" class="${buttonClass} text-left">Выйти</button>
         </div>
       </aside>
       <main class="grid gap-3 p-4">
-        <section class="rounded-2xl border border-sky-200 bg-white p-4 shadow-sm">
-          <div class="text-xl font-bold text-sky-900">Профиль</div>
-          <div><strong>Пользователь:</strong> ${escapeHtml(userName)}</div>
-          <div><strong>Роль:</strong> ${roleLabel(userRole)}</div>
+        <section id="profilePanel" class="rounded-2xl border border-sky-200 bg-white p-4 shadow-sm ${activeTab === "profile" ? "" : "hidden"}">
+          ${profileMarkup(userName, userRole)}
         </section>
         <section id="diaryPanel" class="rounded-2xl border border-sky-200 bg-white p-4 shadow-sm ${activeTab === "diary" ? "" : "hidden"}">
           ${diaryMarkup(rows, userRole)}
@@ -104,8 +126,22 @@ function dashboardMarkup(rows: GradeRow[]) {
         <section id="chatPanel" class="rounded-2xl border border-sky-200 bg-white p-4 shadow-sm ${activeTab === "chat" ? "" : "hidden"}">
           ${chatMarkup()}
         </section>
+        <section id="eventsPanel" class="rounded-2xl border border-sky-200 bg-white p-4 shadow-sm ${activeTab === "events" ? "" : "hidden"}">
+          ${eventsMarkup()}
+        </section>
+        <section id="plansPanel" class="rounded-2xl border border-sky-200 bg-white p-4 shadow-sm ${activeTab === "plans" ? "" : "hidden"}">
+          ${plansMarkup()}
+        </section>
       </main>
     </section>
+  `;
+}
+
+function profileMarkup(userName: string, userRole: UserRole) {
+  return `
+    <div class="text-xl font-bold text-sky-900">Профиль</div>
+    <div><strong>Пользователь:</strong> ${escapeHtml(userName)}</div>
+    <div><strong>Роль:</strong> ${roleLabel(userRole)}</div>
   `;
 }
 
@@ -125,9 +161,32 @@ function chatMarkup() {
       <div class="flex flex-wrap gap-2">
         <button class="${buttonClass}" id="sttBtn">STT (микрофон)</button>
         <button class="${buttonClass}" id="sendBtn">Send</button>
-        <button class="${buttonClass}" id="refreshBtn">Refresh</button>
       </div>
     </div>
+  `;
+}
+
+function plansMarkup() {
+  const items = plannerItems
+    .map(
+      (item) => `
+      <div class="rounded-lg border border-sky-100 bg-white p-2">
+        <div class="text-xs text-sky-600">${new Date(item.createdAt).toLocaleString("ru-RU")}</div>
+        <div class="mt-1 whitespace-pre-wrap text-sm text-slate-800">${escapeHtml(item.text)}</div>
+      </div>
+    `,
+    )
+    .join("");
+  return `
+    <aside class="max-h-[600px] overflow-auto rounded-xl border border-sky-200 bg-sky-50 p-3">
+      <div class="mb-2 flex items-center justify-between gap-2">
+        <div class="text-sm font-semibold text-sky-900">Подтвержденные планы</div>
+        <button class="${buttonClass} px-2 py-1 text-xs" id="clearPlannerBtn">Очистить</button>
+      </div>
+      <div class="grid gap-2">
+        ${items || `<div class="text-sm text-sky-700">Пока нет подтвержденных планов.</div>`}
+      </div>
+    </aside>
   `;
 }
 
@@ -158,6 +217,52 @@ function diaryMarkup(rows: GradeRow[], role: UserRole) {
   `;
 }
 
+function eventsMarkup() {
+  const body = eventsLoading
+    ? `<div class="text-sm text-sky-700">Загрузка проектов...</div>`
+    : eventsError
+      ? `<div class="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">${escapeHtml(eventsError)}</div>`
+      : eventsProjects.length === 0
+        ? `<div class="text-sm text-sky-700">Нет данных по проектам.</div>`
+        : `<div class="flex flex-wrap gap-3">${eventsProjects.map((item) => eventCardMarkup(item)).join("")}</div>`;
+
+  return `
+    <div class="mb-3 flex items-center justify-between gap-2">
+      <div>
+        <div class="text-xl font-bold text-sky-900">События</div>
+        <p class="text-sm text-sky-700">Проекты Движения Первых</p>
+      </div>
+      <button class="${buttonClass}" id="eventsRefreshBtn">Обновить</button>
+    </div>
+    ${body}
+  `;
+}
+
+function eventCardMarkup(item: EventProjectCard): string {
+  const image = item.imageUrl
+    ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}" class="h-[220px] w-full rounded-xl object-contain object-center" loading="lazy" />`
+    : `<div class="grid h-[220px] w-full place-items-center rounded-xl text-sm text-sky-700">Нет изображения</div>`;
+  const dateText = formatDateRange(item.dateStart, item.dateEnd);
+  const ageText = formatAgeRange(item.minAge, item.maxAge);
+  const inner = `
+    <article class="flex h-[400px] w-[300px] flex-col rounded-xl border border-sky-200 bg-white p-3 shadow-sm transition hover:shadow-md">
+      <div class="grid h-[220px] w-full place-items-center bg-sky-50">
+        ${image}
+      </div>
+      <div class="mt-3 flex-1">
+        <div class="line-clamp-2 text-sm font-semibold text-slate-800">${escapeHtml(item.title)}</div>
+        <div class="mt-1 text-xs text-sky-800">Даты: ${escapeHtml(dateText)}</div>
+        <div class="text-xs text-sky-800">Возраст: ${escapeHtml(ageText)}</div>
+        <div class="mt-2 text-xs font-medium text-sky-700">Нажмите, чтобы узнать подробности</div>
+      </div>
+    </article>
+  `;
+  if (item.externalUrl) {
+    return `<a href="${escapeHtml(item.externalUrl)}" target="_blank" rel="noreferrer noopener" class="block">${inner}</a>`;
+  }
+  return inner;
+}
+
 function addMessage(role: "user" | "assistant" | "system", text: string) {
   if (!chatEl) return;
   const div = document.createElement("div");
@@ -168,7 +273,18 @@ function addMessage(role: "user" | "assistant" | "system", text: string) {
       : role === "system"
         ? "border-amber-200 bg-amber-50"
         : "border-sky-100 bg-white");
-  div.textContent = text;
+  const textNode = document.createElement("div");
+  textNode.innerHTML = renderMarkdown(text);
+  div.appendChild(textNode);
+  if (role === "assistant") {
+    const btn = document.createElement("button");
+    btn.className = `${buttonClass} mt-2 px-2 py-1 text-xs`;
+    btn.textContent = "Подтвердить план";
+    btn.onclick = () => {
+      confirmPlannerItem(text);
+    };
+    div.appendChild(btn);
+  }
   chatEl.appendChild(div);
   chatEl.scrollTop = chatEl.scrollHeight;
 }
@@ -193,17 +309,21 @@ function request(method: string, params?: unknown): Promise<unknown> {
 
 async function loadHistory() {
   if (!chatEl) return;
+  resetTypingBubble();
   const response = (await request("chat.history", {
     sessionKey: localStorage.getItem(storage.sessionKey) ?? "main",
     limit: 80,
   })) as { messages?: Array<{ role?: string; content?: unknown; text?: string }> };
   chatEl.innerHTML = "";
   for (const m of response.messages ?? []) {
-    const role = (m.role ?? "assistant").toLowerCase() === "user" ? "user" : "assistant";
+    const normalizedRole = (m.role ?? "assistant").toLowerCase();
+    const role = normalizedRole === "user" ? "user" : normalizedRole === "system" ? "system" : "assistant";
     const content = normalizeMessageText(m);
-    if (!content.trim()) continue;
+    if (!content.trim() || isNoiseMessage(content)) continue;
+    if (role === "system") continue;
     addMessage(role, content);
   }
+  bindPlannerEvents();
 }
 
 async function connectChat() {
@@ -242,11 +362,9 @@ async function connectChat() {
             : null;
         await sendGatewayConnectHandshake(gatewayToken);
         if (connectionStateEl) connectionStateEl.textContent = "Подключено";
-        addMessage("system", "Connected");
         await loadHistory();
       } catch (error) {
         if (connectionStateEl) connectionStateEl.textContent = "Ошибка авторизации";
-        addMessage("system", `Connect error: ${formatUnknownError(error)}`);
       }
       return;
     }
@@ -265,15 +383,21 @@ async function connectChat() {
     }
     if (data.type === "event" && data.event === "chat.event") {
       const payload = data.payload as { state?: string; message?: unknown } | undefined;
+      const liveText = normalizeMessageText(payload?.message as { text?: string; content?: unknown } | undefined);
+      if (liveText && !isNoiseMessage(liveText)) {
+        updateTypingBubble(liveText);
+      }
       if (payload?.state === "final") {
+        stopPendingHistoryRefresh();
         await loadHistory();
       }
     }
   };
-  ws.onerror = () => addMessage("system", "WebSocket error");
+  ws.onerror = () => {
+    if (connectionStateEl) connectionStateEl.textContent = "Ошибка WebSocket";
+  };
   ws.onclose = () => {
     if (connectionStateEl) connectionStateEl.textContent = "Отключено";
-    addMessage("system", "Disconnected");
   };
 }
 
@@ -342,15 +466,15 @@ function bindChatEvents() {
   chatEl = document.querySelector<HTMLDivElement>("#chat");
   if (!chatEl) return;
   const sendBtn = document.querySelector<HTMLButtonElement>("#sendBtn");
-  const refreshBtn = document.querySelector<HTMLButtonElement>("#refreshBtn");
   const sttBtn = document.querySelector<HTMLButtonElement>("#sttBtn");
   const messageInput = document.querySelector<HTMLTextAreaElement>("#messageInput");
   const fileInput = document.querySelector<HTMLInputElement>("#fileInput");
   const fileState = document.querySelector<HTMLSpanElement>("#fileState");
-  if (!sendBtn || !refreshBtn || !sttBtn || !messageInput || !fileInput || !fileState) {
+  if (!sendBtn || !sttBtn || !messageInput || !fileInput || !fileState) {
     return;
   }
   if (!ws || ws.readyState !== WebSocket.OPEN) void connectChat();
+  bindPlannerEvents();
 
   fileInput.onchange = () => {
     void onSelectFile(fileInput, fileState);
@@ -360,8 +484,11 @@ function bindChatEvents() {
     void onSendMessage(messageInput, fileInput, fileState);
   };
 
-  refreshBtn.onclick = () => {
-    void onRefreshHistory();
+  messageInput.onkeydown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      void onSendMessage(messageInput, fileInput, fileState);
+    }
   };
 
   sttBtn.onclick = () => {
@@ -401,9 +528,16 @@ async function onSendMessage(
   const sessionKey = localStorage.getItem(storage.sessionKey) ?? "main";
   if (!text && !attachment) return;
   try {
+    const messageToSend = buildOutgoingMessage(text, attachment);
+    if (text) addMessage("user", text);
+    if (!text && attachment?.type === "audio") {
+      addMessage("user", "Аудио отправлено на STT и AI-анализ.");
+    }
+    resetTypingBubble();
+    await ensurePlannerSystemRole(sessionKey);
     await request("chat.send", {
       sessionKey,
-      message: text,
+      message: messageToSend,
       idempotencyKey: id(),
       deliver: false,
       attachments: attachment ? [attachment] : undefined,
@@ -412,17 +546,10 @@ async function onSendMessage(
     fileInput.value = "";
     attachment = null;
     fileState.textContent = "";
-    await loadHistory();
+    startPendingHistoryRefresh();
   } catch (error) {
-    addMessage("system", `Send error: ${formatUnknownError(error)}`);
-  }
-}
-
-async function onRefreshHistory() {
-  try {
-    await loadHistory();
-  } catch (error) {
-    addMessage("system", `Refresh error: ${formatUnknownError(error)}`);
+    console.error("Send error:", formatUnknownError(error));
+    resetTypingBubble();
   }
 }
 
@@ -458,7 +585,7 @@ function bindDashboard() {
   const userRole = (localStorage.getItem(storage.userRole) as UserRole | null) ?? "student";
   navBtns.forEach((btn) => {
     btn.onclick = () => {
-      activeTab = (btn.dataset.tab as "diary" | "chat") ?? "diary";
+      activeTab = (btn.dataset.tab as "profile" | "diary" | "chat" | "events" | "plans") ?? "diary";
       renderApp(true, loadDiaryRows());
     };
   });
@@ -471,8 +598,107 @@ function bindDashboard() {
 
   if (activeTab === "chat") {
     bindChatEvents();
+  } else if (activeTab === "events") {
+    bindEventsEvents();
+  } else if (activeTab === "plans") {
+    bindPlannerEvents();
   } else {
     bindDiaryEvents(userRole);
+  }
+}
+
+function bindPlannerEvents() {
+  const clearBtn = document.querySelector<HTMLButtonElement>("#clearPlannerBtn");
+  if (!clearBtn) return;
+  clearBtn.onclick = () => {
+    plannerItems = [];
+    savePlannerItems();
+    if (activeTab === "chat") renderApp(true, loadDiaryRows());
+  };
+}
+
+function bindEventsEvents() {
+  const refreshBtn = document.querySelector<HTMLButtonElement>("#eventsRefreshBtn");
+  refreshBtn?.addEventListener("click", () => {
+    void loadEventsProjects(true);
+  });
+  if (!eventsLoading && eventsProjects.length === 0 && !eventsError) {
+    void loadEventsProjects(false);
+  }
+}
+
+async function loadEventsProjects(forceReload: boolean) {
+  if (eventsLoading) return;
+  if (!forceReload && eventsProjects.length > 0) return;
+  eventsLoading = true;
+  eventsError = "";
+  if (activeTab === "events") renderApp(true, loadDiaryRows());
+  try {
+    const payload = {
+      operationName: "projectSortList",
+      variables: {
+        pagination: { offset: 0, limit: 12 },
+        order: [{ field: "dateEnd", order: "SORT_DESC" }],
+        type: "FLAGSHIP",
+        isArchive: false,
+      },
+      query:
+        "query projectSortList($isArchive: Boolean!, $order: [OrderInputObject], $pagination: PaginationFilter = {limit: 20}, $type: ProjectSortPageType!, $directions: [Direction], $ages: [String], $tags: [Uuid], $regionID: Uuid, $search: String) { projectSortList( isArchive: $isArchive order: $order pagination: $pagination type: $type directions: $directions ages: $ages tags: $tags regionID: $regionID search: $search ) { totalCount nodes { project { ...MainProjectItem __typename } superProject { ...MainSuperProjectItem __typename } projectType __typename } __typename } } fragment MainProjectItem on ProjectObject { ID publicID title photoUrl dateStart dateEnd registrationStart registrationEnd minAge maxAge territoryLevel activitiesCount externalUrl displayedTerritoryLevel status tags { ID name __typename } direction __typename } fragment MainSuperProjectItem on SuperProjectObject { ID name minAge maxAge beginsAt endsAt publicID imageUrl territoryLevel externalUrl status activeProjectsCount tags { ID name __typename } userRoles { ID name description __typename } __typename }",
+    };
+    const response = await fetch("https://api.projects.pervye.ru/graphql", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      throw new Error(`Ошибка загрузки: HTTP ${response.status}`);
+    }
+    const json = (await response.json()) as {
+      data?: {
+        projectSortList?: {
+          nodes?: Array<{
+            project?: {
+              title?: string;
+              photoUrl?: string | null;
+              externalUrl?: string | null;
+              dateStart?: string | null;
+              dateEnd?: string | null;
+              minAge?: number | null;
+              maxAge?: number | null;
+            } | null;
+            superProject?: {
+              name?: string;
+              imageUrl?: string | null;
+              externalUrl?: string | null;
+              beginsAt?: string | null;
+              endsAt?: string | null;
+              minAge?: number | null;
+              maxAge?: number | null;
+            } | null;
+          }>;
+        };
+      };
+    };
+    const nodes = json.data?.projectSortList?.nodes ?? [];
+    eventsProjects = nodes
+      .map((node) => {
+        const projectTitle = node.project?.title?.trim();
+        const superTitle = node.superProject?.name?.trim();
+        const title = projectTitle || superTitle || "";
+        const imageUrl = node.project?.photoUrl ?? node.superProject?.imageUrl ?? null;
+        const externalUrl = node.project?.externalUrl ?? node.superProject?.externalUrl ?? null;
+        const dateStart = node.project?.dateStart ?? node.superProject?.beginsAt ?? null;
+        const dateEnd = node.project?.dateEnd ?? node.superProject?.endsAt ?? null;
+        const minAge = node.project?.minAge ?? node.superProject?.minAge ?? null;
+        const maxAge = node.project?.maxAge ?? node.superProject?.maxAge ?? null;
+        return { title, imageUrl, externalUrl, dateStart, dateEnd, minAge, maxAge };
+      })
+      .filter((item) => Boolean(item.title));
+  } catch (error) {
+    eventsError = `Не удалось получить проекты: ${formatUnknownError(error)}`;
+  } finally {
+    eventsLoading = false;
+    if (activeTab === "events") renderApp(true, loadDiaryRows());
   }
 }
 
@@ -603,7 +829,8 @@ function formatUnknownError(error: unknown): string {
   }
 }
 
-function normalizeMessageText(message: { text?: string; content?: unknown }): string {
+function normalizeMessageText(message?: { text?: string; content?: unknown }): string {
+  if (!message) return "";
   const chunks: string[] = [];
   if (typeof message.text === "string" && message.text.trim()) {
     chunks.push(message.text.trim());
@@ -629,6 +856,187 @@ function sanitizeAssistantBoilerplate(text: string): string {
   if (out.includes("[Bootstrap pending]")) {
     out = out.replace(/\[Bootstrap pending\][\s\S]*?(?=\n{2,}|\z)/g, "").trim();
   }
+  out = out.replace(/\[system-role\]/gi, "");
+  out = out.replace(/^-media attached:.*$/gim, "");
+  out = out
+    .split("\n")
+    .filter((line) => !/^\s*compaction\b/i.test(line.trim()))
+    .join("\n");
   out = out.replace(/\n{3,}/g, "\n\n");
   return out;
+}
+
+function isNoiseMessage(text: string): boolean {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized) return true;
+  return (
+    normalized.startsWith("compaction") ||
+    normalized.startsWith("[system-role]") ||
+    normalized.includes("ты планировщик учебного процесса") ||
+    normalized.includes("system role: skillset planner") ||
+    normalized.includes("pre-compaction memory flush") ||
+    normalized.includes("hello! i'm skillset")
+  );
+}
+
+function updateTypingBubble(targetText: string) {
+  if (!chatEl) return;
+  if (isNoiseMessage(targetText)) return;
+  if (!typingBubbleEl) {
+    typingBubbleEl = document.createElement("div");
+    typingBubbleEl.className = "mb-2 whitespace-pre-wrap rounded-xl border border-sky-100 bg-white p-3 text-sm";
+    chatEl.appendChild(typingBubbleEl);
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+  if (typingTimer !== null) {
+    clearInterval(typingTimer);
+    typingTimer = null;
+  }
+  if (!targetText) {
+    typingRenderedText = "";
+    typingBubbleEl.innerHTML = "";
+    return;
+  }
+  const nextText = targetText;
+
+  const startText = typingRenderedText && nextText.startsWith(typingRenderedText) ? typingRenderedText : "";
+  let index = startText.length;
+  typingRenderedText = startText;
+  typingBubbleEl.textContent = startText;
+  typingTimer = window.setInterval(() => {
+    index += 1;
+    const chunk = nextText.slice(0, index);
+    typingRenderedText = chunk;
+    if (typingBubbleEl) typingBubbleEl.innerHTML = renderMarkdown(chunk);
+    if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+    if (index >= nextText.length && typingTimer !== null) {
+      clearInterval(typingTimer);
+      typingTimer = null;
+    }
+  }, 12);
+}
+
+function resetTypingBubble() {
+  if (typingTimer !== null) {
+    clearInterval(typingTimer);
+    typingTimer = null;
+  }
+  typingRenderedText = "";
+  if (typingBubbleEl) {
+    typingBubbleEl.remove();
+    typingBubbleEl = null;
+  }
+}
+
+function confirmPlannerItem(text: string) {
+  const normalized = text.trim();
+  if (!normalized) return;
+  const exists = plannerItems.some((item) => item.text === normalized);
+  if (exists) return;
+  plannerItems = [{ id: id(), text: normalized, createdAt: Date.now() }, ...plannerItems].slice(0, 30);
+  savePlannerItems();
+  if (activeTab === "chat") renderApp(true, loadDiaryRows());
+}
+
+function savePlannerItems() {
+  localStorage.setItem(storage.plannerItems, JSON.stringify(plannerItems));
+}
+
+function loadPlannerItems(): PlannerItem[] {
+  const raw = localStorage.getItem(storage.plannerItems);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as PlannerItem[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function startPendingHistoryRefresh() {
+  stopPendingHistoryRefresh();
+  let attempts = 0;
+  pendingHistoryTimer = window.setInterval(() => {
+    attempts += 1;
+    void loadHistory();
+    if (attempts >= 15) stopPendingHistoryRefresh();
+  }, 1500);
+}
+
+function stopPendingHistoryRefresh() {
+  if (pendingHistoryTimer !== null) {
+    clearInterval(pendingHistoryTimer);
+    pendingHistoryTimer = null;
+  }
+}
+
+function buildOutgoingMessage(text: string, currentAttachment: ChatAttachment | null): string {
+  if (text) return text;
+  if (currentAttachment?.type === "audio") {
+    return [
+      "Обязательно выполни STT ВЛОЖЕННОГО аудиофайла и проанализируй именно его содержание.",
+      "Не придумывай транскрипт. Если STT не удалось, напиши только: STT_ERROR.",
+      "Верни строго в формате:",
+      "Транскрипт: <краткая расшифровка 1-6 предложений>",
+      "План: <3-6 шагов>",
+      "Сделано: <что уже сделано>",
+      "Дальше: <что делать дальше>",
+      "Время: <оценка времени>",
+      "Не решай задания за пользователя, только планируй выполнение.",
+    ].join("\n");
+  }
+  if (currentAttachment?.type === "image") {
+    return "Проанализируй вложение и предложи план действий без решения заданий за пользователя.";
+  }
+  return text;
+}
+
+async function ensurePlannerSystemRole(sessionKey: string) {
+  const plannerRole = getPlannerRoleText();
+  await request("chat.inject", {
+    sessionKey,
+    message: plannerRole,
+    label: "system-role",
+  });
+  plannerRoleInjectedSessions.add(sessionKey);
+}
+
+function getPlannerRoleText(): string {
+  return "Ты планировщик учебного процесса, ты не должен помогать решать задания. Ты должен только планировать выполнение этих заданий.";
+}
+
+function renderMarkdown(text: string): string {
+  const safe = escapeHtml(text);
+  const withHeadings = safe
+    .replace(/^###\s+(.+)$/gm, "<h3 class=\"mt-2 font-semibold text-sky-900\">$1</h3>")
+    .replace(/^##\s+(.+)$/gm, "<h2 class=\"mt-2 font-semibold text-sky-900\">$1</h2>")
+    .replace(/^#\s+(.+)$/gm, "<h1 class=\"mt-2 font-bold text-sky-900\">$1</h1>");
+  const withBold = withHeadings.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  const withItalic = withBold.replace(/\*(.+?)\*/g, "<em>$1</em>");
+  const withCode = withItalic.replace(/`([^`]+)`/g, "<code class=\"rounded bg-sky-100 px-1\">$1</code>");
+  const withLists = withCode.replace(/^\s*-\s+(.+)$/gm, "• $1");
+  return withLists.replace(/\n/g, "<br/>");
+}
+
+function formatDateRange(start: string | null, end: string | null): string {
+  const startText = formatDate(start);
+  const endText = formatDate(end);
+  if (startText && endText) return `${startText} - ${endText}`;
+  if (startText) return startText;
+  if (endText) return endText;
+  return "не указаны";
+}
+
+function formatDate(value: string | null): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("ru-RU");
+}
+
+function formatAgeRange(minAge: number | null, maxAge: number | null): string {
+  if (typeof minAge === "number" && typeof maxAge === "number") return `${minAge}-${maxAge} лет`;
+  if (typeof minAge === "number") return `от ${minAge} лет`;
+  if (typeof maxAge === "number") return `до ${maxAge} лет`;
+  return "не указана";
 }

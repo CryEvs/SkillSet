@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { CURRENT_SESSION_VERSION, SessionManager } from "@mariozechner/pi-coding-agent";
 import { resolveSendableOutboundReplyParts } from "skillset/plugin-sdk/reply-payload";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
@@ -131,16 +132,26 @@ function resolveEduPlannerSttConfig(cfg: unknown): {
 async function transcribeAudioWithEduPlannerStt(params: {
   cfg: unknown;
   audioPath: string;
+  log?: { warn?: (message: string) => void };
 }): Promise<string | null> {
   const sttCfg = resolveEduPlannerSttConfig(params.cfg);
-  const pythonBin = sttCfg.sttPythonPath || "python";
+  const defaultPythonBin = process.platform === "win32" ? "py" : "python3";
+  const pythonBin = sttCfg.sttPythonPath || defaultPythonBin;
+  const pythonPreludeArgs =
+    process.platform === "win32" && !sttCfg.sttPythonPath ? ["-3"] : [];
+  const currentDir = path.dirname(fileURLToPath(import.meta.url));
+  const repoRoot = path.resolve(currentDir, "../../..");
   const scriptPath =
     sttCfg.sttScriptPath ||
-    path.join(process.cwd(), "extensions", "edu-planner", "scripts", "stt_transcribe.py");
+    path.join(repoRoot, "extensions", "edu-planner", "scripts", "stt_transcribe.py");
   return await new Promise<string | null>((resolve) => {
-    const proc = spawn(pythonBin, [scriptPath, "--mode", "file", "--file", params.audioPath], {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const proc = spawn(
+      pythonBin,
+      [...pythonPreludeArgs, scriptPath, "--mode", "file", "--file", params.audioPath],
+      {
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
     let stdout = "";
     let stderr = "";
     proc.stdout.on("data", (chunk) => {
@@ -149,14 +160,23 @@ async function transcribeAudioWithEduPlannerStt(params: {
     proc.stderr.on("data", (chunk) => {
       stderr += String(chunk);
     });
-    proc.on("error", () => resolve(null));
+    proc.on("error", (error) => {
+      params.log?.warn?.(`chat.send STT spawn failed: ${String(error)}`);
+      resolve(null);
+    });
     proc.on("exit", (code) => {
       if (code !== 0) {
+        params.log?.warn?.(
+          `chat.send STT failed (code=${String(code)}): ${stderr.trim() || "no stderr"}`,
+        );
         resolve(null);
         return;
       }
       const text = stdout.trim();
       if (!text || text === "{}" || /"error"\s*:/i.test(text) || /Traceback/i.test(stderr)) {
+        params.log?.warn?.(
+          `chat.send STT returned empty/error output: stdout="${text.slice(0, 200)}" stderr="${stderr.trim().slice(0, 200)}"`,
+        );
         resolve(null);
         return;
       }
@@ -2026,6 +2046,7 @@ export const chatHandlers: GatewayRequestHandlers = {
           const transcript = await transcribeAudioWithEduPlannerStt({
             cfg,
             audioPath: firstAudioPath,
+            log: context.logGateway,
           });
           if (transcript && transcript.trim()) {
             parsedMessage = [
